@@ -1,32 +1,42 @@
-const CACHE = "cache-dump-v2";
-const ASSETS = [
-  "./index.html",
-  "./cache_dump_pwa.html",
-  "./cache_dump_pwa.webmanifest"
-];
+const CACHE = "cache-dump-v3";
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS).catch(() => {})));
   self.skipWaiting();
+  e.waitUntil(Promise.resolve());
 });
 
 self.addEventListener("activate", (e) => {
-  e.waitUntil(self.clients.claim());
+  e.waitUntil(
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("cache-dump")).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
+  const isDoc =
+    e.request.mode === "navigate" ||
+    e.request.destination === "document" ||
+    (e.request.url && /\.html(\?|$)/.test(e.request.url));
+
+  if (isDoc) {
+    e.respondWith(
+      fetch(e.request)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
+          return res;
+        })
+        .catch(() => caches.match(e.request).then((hit) => hit || caches.match("./index.html")))
+    );
+    return;
+  }
+
   e.respondWith(
-    caches.match(e.request).then(
-      (hit) =>
-        hit ||
-        fetch(e.request)
-          .then((res) => {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
-            return res;
-          })
-          .catch(() => caches.match("./index.html") || caches.match("./cache_dump_pwa.html"))
-    )
+    fetch(e.request)
+      .then((res) => res)
+      .catch(() => caches.match(e.request))
   );
 });
