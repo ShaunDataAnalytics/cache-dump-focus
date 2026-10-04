@@ -541,8 +541,8 @@ ${persLines}
         location.hostname === "localhost" ||
         location.hostname === "127.0.0.1";
       const el = document.getElementById("installBannerText");
-      if (el && !isLocal && location.protocol.startsWith("http")) {
-        el.innerHTML = "<strong>Home Screen app:</strong> No Mac, no port. Save copies markdown; export JSON for vault when you want.";
+      if (!isLocal && location.protocol.startsWith("http")) {
+        document.getElementById("installBanner").classList.add("hidden");
       }
       if (el && isLocal && PUBLIC_DEPLOY_URL) {
         el.innerHTML = `Mac preview. On iPhone open <a href="${PUBLIC_DEPLOY_URL}">${PUBLIC_DEPLOY_URL}</a> → Add to Home Screen (static, like dbt hub).`;
