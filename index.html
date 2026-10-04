@@ -211,9 +211,6 @@
 
   <section id="panelDump" class="panel active">
     <div class="card">
-      <div id="syncPill" class="sync-pill ok">● No Mac / no port — saves on phone</div>
-      <p style="font-size:0.82rem;color:var(--muted);margin-bottom:12px;">Externalize intrusive thoughts before focus. Saves on device, copies Obsidian-ready markdown (vault import optional on Mac).</p>
-
       <label class="field-label">Work anxieties</label>
       <input type="text" class="cd-work" placeholder="Meeting, email, SQL…" autocomplete="off">
       <input type="text" class="cd-work" placeholder="Anxiety 2…" autocomplete="off">
@@ -284,12 +281,6 @@
     function todayKey() {
       const d = new Date();
       return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-    }
-
-    function setSyncPill(state, label) {
-      const el = document.getElementById("syncPill");
-      el.className = "sync-pill " + state;
-      el.textContent = "● " + label;
     }
 
     function buildPayload() {
@@ -414,7 +405,6 @@ ${persLines}
       };
       pushSession(session);
       const copied = await copyText(markdown);
-      setSyncPill("ok", "Saved on phone");
       tip(copied ? "💾 Saved · markdown copied" : "💾 Saved on phone");
       clearForm();
       playSuccessFeedback();
