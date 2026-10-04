@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Cache Dump">
+  <meta name="theme-color" content="#5b21b6">
+  <title>Cache Dump</title>
+  <link rel="manifest" href="cache_dump_pwa.webmanifest">
+  <style>
+    :root {
+      --bg: #f5f3ff;
+      --surface: #ffffff;
+      --text: #1e1b4b;
+      --muted: #64748b;
+      --accent: #7c3aed;
+      --accent-dark: #5b21b6;
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-t: env(safe-area-inset-top, 0px);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      padding: calc(10px + var(--safe-t)) 14px calc(72px + var(--safe-b));
+      line-height: 1.45;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .install-banner {
+      background: var(--accent-dark);
+      color: #ede9fe;
+      font-size: 0.72rem;
+      padding: 10px 12px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .install-banner.hidden { display: none; }
+    .install-banner button {
+      flex-shrink: 0;
+      border: none;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+    .install-banner a { color: #c4b5fd; }
+    header h1 { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; }
+    header .sub { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .card {
+      background: var(--surface);
+      border: 1px solid #e9d5ff;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 18px rgba(91, 33, 182, 0.06);
+    }
+    label.field-label {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--accent-dark);
+      margin-bottom: 6px;
+    }
+    input[type="text"], input[type="url"], textarea {
+      width: 100%;
+      font: inherit;
+      font-size: 0.92rem;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1.5px solid #ddd6fe;
+      background: #fff;
+      margin-bottom: 8px;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+    }
+    .permission {
+      font-size: 0.85rem;
+      font-style: italic;
+      color: #4c1d95;
+      padding: 10px 12px;
+      background: rgba(124, 58, 237, 0.08);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 10px 10px 0;
+      margin: 12px 0;
+    }
+    .btn {
+      width: 100%;
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #9333ea);
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.35);
+    }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-secondary {
+      background: #fff;
+      color: var(--text);
+      border: 1.5px solid #ddd6fe;
+    }
+    .timer-display {
+      font-variant-numeric: tabular-nums;
+      font-size: 4rem;
+      font-weight: 200;
+      text-align: center;
+      color: var(--accent-dark);
+      margin: 24px 0 8px;
+    }
+    .timer-hint { text-align: center; font-size: 0.8rem; color: var(--muted); margin-bottom: 16px; }
+    nav.tabs {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      display: flex;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid #e9d5ff;
+      padding: 6px 8px calc(6px + var(--safe-b));
+      gap: 4px;
+      z-index: 50;
+    }
+    nav.tabs button {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font: inherit;
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: var(--muted);
+      padding: 8px 4px;
+      border-radius: 10px;
+    }
+    nav.tabs button.active {
+      background: #ede9fe;
+      color: var(--accent-dark);
+    }
+    nav.tabs button span.icon { display: block; font-size: 1.15rem; margin-bottom: 2px; }
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(80px + var(--safe-b));
+      transform: translateX(-50%) translateY(12px);
+      background: #1e1b4b;
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 10px 16px;
+      border-radius: 999px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 100;
+      max-width: 90vw;
+      text-align: center;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .sync-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+    .sync-pill.ok { background: #ecfdf5; color: #047857; }
+    .sync-pill.wait { background: #fffbeb; color: #b45309; }
+    .sync-pill.off { background: #f1f5f9; color: #64748b; }
+    .queue-count { font-size: 0.75rem; color: var(--muted); margin-top: 8px; }
+    .history-item {
+      font-size: 0.78rem;
+      padding: 8px 0;
+      border-bottom: 1px solid #f3e8ff;
+    }
+    .history-item:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+  <div id="installBanner" class="install-banner">
+    <div id="installBannerText"><strong>iPhone:</strong> Open your Vercel URL → Safari → Share → <strong>Add to Home Screen</strong>. No Mac, no port (like dbt hub).</div>
+    <button type="button" id="btnDismissInstall">OK</button>
+  </div>
+
+  <header>
+    <h1>🧠 Cache Dump</h1>
+    <p class="sub" id="dateLine">120s mental RAM clear · Time Personality</p>
+  </header>
+
+  <section id="panelDump" class="panel active">
+    <div class="card">
+      <div id="syncPill" class="sync-pill ok">● No Mac / no port — saves on phone</div>
+      <p style="font-size:0.82rem;color:var(--muted);margin-bottom:12px;">Externalize intrusive thoughts before focus. Saves on device, copies Obsidian-ready markdown (vault import optional on Mac).</p>
+
+      <label class="field-label">Work anxieties</label>
+      <input type="text" class="cd-work" placeholder="Meeting, email, SQL…" autocomplete="off">
+      <input type="text" class="cd-work" placeholder="Anxiety 2…" autocomplete="off">
+      <input type="text" class="cd-work" placeholder="Anxiety 3…" autocomplete="off">
+
+      <label class="field-label" style="margin-top:8px;">Personal distractions</label>
+      <input type="text" class="cd-pers" placeholder="Errand, argument, habit…" autocomplete="off">
+      <input type="text" class="cd-pers" placeholder="Distraction 2…" autocomplete="off">
+      <input type="text" class="cd-pers" placeholder="Distraction 3…" autocomplete="off">
+
+      <div class="permission">今天，我允许自己放下对上述问题的执念，专注于眼前必须做的这一件事。</div>
+
+      <button type="button" class="btn btn-primary" id="btnSave">💾 Save & copy note</button>
+      <button type="button" class="btn btn-secondary" id="btnShareLast" style="margin-top:8px;display:none;">↗ Share last note</button>
+      <button type="button" class="btn btn-secondary" id="btnTimerFirst">⏱ Start 120s timer first</button>
+    </div>
+  </section>
+
+  <section id="panelTimer" class="panel">
+    <div class="card">
+      <div class="timer-display" id="timerDisplay">2:00</div>
+      <p class="timer-hint">Pen & paper OK — type on phone after the bell.</p>
+      <button type="button" class="btn btn-primary" id="btnTimerToggle">▶ Start 120s</button>
+      <button type="button" class="btn btn-secondary" id="btnTimerReset">↺ Reset</button>
+      <button type="button" class="btn btn-secondary" id="btnAfterTimer" style="margin-top:8px;">→ Back to form</button>
+    </div>
+  </section>
+
+  <section id="panelSettings" class="panel">
+    <div class="card">
+      <label class="field-label">Vault on Mac (optional, no port)</label>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:10px;">Export JSON below → AirDrop or iCloud → run <code>import_cache_dump_exports.py</code> once on Mac. Or paste copied markdown into Obsidian mobile.</p>
+      <button type="button" class="btn btn-primary" id="btnExportAll">⬇ Export all sessions (.json)</button>
+      <button type="button" class="btn btn-secondary" id="btnDownloadLastMd" style="margin-top:8px;">⬇ Download last .md</button>
+    </div>
+    <div class="card">
+      <label class="field-label">Recent (on this device)</label>
+      <div id="historyList"></div>
+    </div>
+  </section>
+
+  <nav class="tabs" aria-label="Main">
+    <button type="button" data-tab="dump" class="active"><span class="icon">🧠</span>Dump</button>
+    <button type="button" data-tab="timer"><span class="icon">⏱</span>120s</button>
+    <button type="button" data-tab="settings"><span class="icon">📋</span>History</button>
+  </nav>
+
+  <div id="toast" role="status"></div>
+
+  <script>
+    const PUBLIC_DEPLOY_URL = "https://cache-dump-focus.vercel.app/";
+    const ARCHIVE_KEY = "cache_dump_pwa_archive_v2";
+    const INSTALL_KEY = "cache_dump_pwa_install_ok";
+
+    let timerId = null;
+    let timerLeft = 120;
+    let lastSession = null;
+
+    const toastEl = document.getElementById("toast");
+    function tip(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add("show");
+      clearTimeout(tip.t);
+      tip.t = setTimeout(() => toastEl.classList.remove("show"), 2800);
+    }
+
+    function pad(n) { return String(n).padStart(2, "0"); }
+    function todayKey() {
+      const d = new Date();
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+
+    function setSyncPill(state, label) {
+      const el = document.getElementById("syncPill");
+      el.className = "sync-pill " + state;
+      el.textContent = "● " + label;
+    }
+
+    function buildPayload() {
+      const work = [...document.querySelectorAll(".cd-work")].map(i => i.value.trim()).filter(Boolean);
+      const pers = [...document.querySelectorAll(".cd-pers")].map(i => i.value.trim()).filter(Boolean);
+      return { work_anxieties: work, personal_distractions: pers };
+    }
+
+    function buildMarkdown(work, pers, dateStr) {
+      const workLines = work.length ? work.map(w => `- ${w}`).join("\n") : "- None logged.";
+      const persLines = pers.length ? pers.map(p => `- ${p}`).join("\n") : "- None logged.";
+      return `---
+category: pen_paper
+pen_paper_date: ${dateStr}
+pen_paper_type: cache-dump
+created: ${dateStr}
+status: 2
+source: cache-dump-pwa
+---
+
+# 🧠 Cache Dump Session: ${dateStr}
+
+> **Time Personality Protocol**: Overloader focus offload.
+
+## 💼 Work Anxieties
+${workLines}
+
+## 🏠 Personal Distractions
+${persLines}
+
+---
+
+## 📜 Permission Statement
+*今天，我允许自己放下对上述问题的执念，专注于眼前必须做的这一件事。*
+`;
+    }
+
+    function loadArchive() {
+      try { return JSON.parse(localStorage.getItem(ARCHIVE_KEY) || "[]"); } catch { return []; }
+    }
+    function saveArchive(list) {
+      localStorage.setItem(ARCHIVE_KEY, JSON.stringify(list));
+      renderHistory();
+    }
+
+    function pushSession(session) {
+      const list = loadArchive();
+      list.unshift(session);
+      saveArchive(list.slice(0, 80));
+      lastSession = session;
+      document.getElementById("btnShareLast").style.display = "block";
+    }
+
+    function renderHistory() {
+      const el = document.getElementById("historyList");
+      const h = loadArchive();
+      if (!h.length) {
+        el.innerHTML = '<p style="font-size:0.78rem;color:var(--muted)">No sessions yet on this device.</p>';
+        return;
+      }
+      el.innerHTML = h.slice(0, 15).map(x =>
+        `<div class="history-item"><strong>${x.date} ${x.time}</strong> · ${x.work_anxieties.length} work · ${x.personal_distractions.length} personal</div>`
+      ).join("");
+    }
+
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand("copy");
+        ta.remove();
+        return ok;
+      }
+    }
+
+    function downloadBlob(filename, blob) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    function clearForm() {
+      document.querySelectorAll(".cd-work, .cd-pers").forEach(i => { i.value = ""; });
+    }
+
+    function playSuccessFeedback() {
+      try {
+        if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+      } catch (_) {}
+    }
+
+    async function submitDump() {
+      const payload = buildPayload();
+      if (!payload.work_anxieties.length && !payload.personal_distractions.length) {
+        tip("Enter at least one line");
+        return;
+      }
+      const now = new Date();
+      const dateStr = todayKey();
+      const timeLabel = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      const filePrefix = `${dateStr} - ${pad(now.getHours())}-${pad(now.getMinutes())}`;
+      const filename = `${filePrefix} - Cache Dump.md`;
+      const markdown = buildMarkdown(payload.work_anxieties, payload.personal_distractions, dateStr);
+      const session = {
+        id: now.toISOString(),
+        date: dateStr,
+        time: timeLabel,
+        filename,
+        markdown,
+        work_anxieties: payload.work_anxieties,
+        personal_distractions: payload.personal_distractions
+      };
+      pushSession(session);
+      const copied = await copyText(markdown);
+      setSyncPill("ok", "Saved on phone");
+      tip(copied ? "💾 Saved · markdown copied" : "💾 Saved on phone");
+      clearForm();
+      playSuccessFeedback();
+    }
+
+    async function shareLastSession() {
+      if (!lastSession) return;
+      const file = new File([lastSession.markdown], lastSession.filename, { type: "text/markdown" });
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ title: "Cache Dump", files: [file] });
+          return;
+        } catch (_) {}
+      }
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: "Cache Dump", text: lastSession.markdown });
+          return;
+        } catch (_) {}
+      }
+      await copyText(lastSession.markdown);
+      tip("Copied — paste into Obsidian");
+    }
+
+    function exportAllSessions() {
+      const sessions = loadArchive();
+      if (!sessions.length) {
+        tip("Nothing to export yet");
+        return;
+      }
+      const payload = { version: 2, exported_at: new Date().toISOString(), sessions };
+      downloadBlob(`cache-dump-export-${todayKey()}.json`, new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
+      tip("⬇ JSON export started");
+    }
+
+    function downloadLastMd() {
+      const s = lastSession || loadArchive()[0];
+      if (!s) {
+        tip("No session yet");
+        return;
+      }
+      downloadBlob(s.filename, new Blob([s.markdown], { type: "text/markdown" }));
+    }
+
+    function showTab(name) {
+      const map = { dump: "panelDump", timer: "panelTimer", settings: "panelSettings" };
+      document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+      document.getElementById(map[name]).classList.add("active");
+      document.querySelectorAll("nav.tabs button").forEach(b => {
+        b.classList.toggle("active", b.dataset.tab === name);
+      });
+    }
+
+    function renderTimer() {
+      const m = Math.floor(timerLeft / 60);
+      const s = timerLeft % 60;
+      document.getElementById("timerDisplay").textContent = `${m}:${pad(s)}`;
+    }
+
+    document.getElementById("btnSave").addEventListener("click", submitDump);
+    document.getElementById("btnTimerFirst").addEventListener("click", () => showTab("timer"));
+    document.getElementById("btnAfterTimer").addEventListener("click", () => showTab("dump"));
+
+    document.getElementById("btnTimerToggle").addEventListener("click", () => {
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+        document.getElementById("btnTimerToggle").textContent = "▶ Start 120s";
+        return;
+      }
+      document.getElementById("btnTimerToggle").textContent = "⏸ Pause";
+      timerId = setInterval(() => {
+        if (timerLeft > 0) {
+          timerLeft--;
+          renderTimer();
+        } else {
+          clearInterval(timerId);
+          timerId = null;
+          document.getElementById("btnTimerToggle").textContent = "▶ Start 120s";
+          tip("⏱ 120s done — log your dump");
+          if (navigator.vibrate) navigator.vibrate(200);
+          showTab("dump");
+        }
+      }, 1000);
+    });
+    document.getElementById("btnTimerReset").addEventListener("click", () => {
+      if (timerId) clearInterval(timerId);
+      timerId = null;
+      timerLeft = 120;
+      renderTimer();
+      document.getElementById("btnTimerToggle").textContent = "▶ Start 120s";
+    });
+
+    document.querySelectorAll("nav.tabs button").forEach(btn => {
+      btn.addEventListener("click", () => showTab(btn.dataset.tab));
+    });
+
+    document.getElementById("btnShareLast").addEventListener("click", shareLastSession);
+    document.getElementById("btnExportAll").addEventListener("click", exportAllSessions);
+    document.getElementById("btnDownloadLastMd").addEventListener("click", downloadLastMd);
+
+    document.getElementById("btnDismissInstall").addEventListener("click", () => {
+      localStorage.setItem(INSTALL_KEY, "1");
+      document.getElementById("installBanner").classList.add("hidden");
+    });
+
+    document.getElementById("dateLine").textContent = todayKey() + " · 120s mental RAM clear";
+    if (localStorage.getItem(INSTALL_KEY) === "1") {
+      document.getElementById("installBanner").classList.add("hidden");
+    }
+    const archived = loadArchive();
+    if (archived.length) {
+      lastSession = archived[0];
+      document.getElementById("btnShareLast").style.display = "block";
+    }
+    renderTimer();
+    renderHistory();
+
+    (function setupInstallHint() {
+      const isLocal =
+        location.protocol === "file:" ||
+        !location.origin ||
+        location.origin === "null" ||
+        location.hostname === "localhost" ||
+        location.hostname === "127.0.0.1";
+      const el = document.getElementById("installBannerText");
+      if (el && !isLocal && location.protocol.startsWith("http")) {
+        el.innerHTML = "<strong>Home Screen app:</strong> No Mac, no port. Save copies markdown; export JSON for vault when you want.";
+      }
+      if (el && isLocal && PUBLIC_DEPLOY_URL) {
+        el.innerHTML = `Mac preview. On iPhone open <a href="${PUBLIC_DEPLOY_URL}">${PUBLIC_DEPLOY_URL}</a> → Add to Home Screen (static, like dbt hub).`;
+      }
+    })();
+
+    if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+      navigator.serviceWorker.register("./cache_dump_sw.js").catch(() => {});
+    }
+  </script>
+</body>
+</html>
